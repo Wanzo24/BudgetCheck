@@ -1,0 +1,661 @@
+<!DOCTYPE html><html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Pro - Premium Version</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --green:#2ecc71; --red:#e74c3c; --blue:#3498db; --purple:#9b59b6; --bg:#f4f7f6; --sidebar:#ffffff; --card:#ffffff; --text:#2d3436; --border:#e1e8ed; --gold:#f1c40f; }
+        .dark-mode { --bg:#121212; --sidebar:#1e1e1e; --card:#1e1e1e; --text:#f5f6fa; --border:#2d3436; }
+        body { font-family:'Inter', sans-serif; background:var(--bg); color:var(--text); margin:0; display: flex; height: 100vh; overflow: hidden; transition: 0.3s; }
+        
+        /* SIDEBAR */
+        .sidebar { position: fixed; left: -280px; top: 0; width: 280px; height: 100%; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; transition: 0.4s; z-index: 2500; box-sizing: border-box; }
+        .sidebar.active { left: 0; box-shadow: 10px 0 30px rgba(0,0,0,0.1); }
+        .sidebar-header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; position: relative; }
+        
+        .lang-picker { position: absolute; top: -10px; right: -10px; }
+        .lang-picker select { font-size: 10px; padding: 4px; border-radius: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+
+        .avatar-circle { width: 60px; height: 60px; background: var(--blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 22px; font-weight: bold; border: 2px solid #fff; }
+        .plan-badge { display: inline-block; background: var(--purple); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; margin-top: 5px; }
+        .plan-badge.gold { background: var(--gold); color: #000; }
+        
+        .nav-item { padding: 15px; border-radius: 12px; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; font-weight: 600; color: var(--text); }
+        .nav-item.active { background: var(--blue); color: white; }
+        .nav-item.pro { background: var(--purple); color: white; }
+
+        .main-content { flex: 1; overflow-y: auto; height: 100vh; padding: 20px; box-sizing: border-box; }
+        .page { display: none; max-width: 1000px; margin: auto; animation: fadeIn 0.3s; padding-bottom: 80px; }
+        .page.active { display: block; }
+
+        .hero { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 30px; border-radius: 28px; text-align: center; margin-bottom: 25px; position: relative; }
+        .hero-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .menu-btn { background: rgba(255, 255, 255, 0.2); color: white; border: none; width: 42px; height: 42px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        
+        .card { background: var(--card); padding: 25px; border-radius: 24px; border: 1px solid var(--border); margin-bottom: 20px; }
+        input, select { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text); box-sizing: border-box; outline: none; }
+        button { padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; background: var(--blue); color: white; }
+        button.btn-pro { background: var(--purple); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .pass-wrapper { position: relative; width: 100%; margin-bottom: 12px; }
+        .toggle-btn { position: absolute; right: 15px; top: 14px; cursor: pointer; opacity: 0.8; font-size: 16px; z-index: 10; }
+        .err-msg { color: var(--red); font-size: 0.75rem; text-align: left; margin-top: 5px; margin-bottom: 10px; display: none; font-weight: 600; }
+
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; }
+        li { background:var(--card); margin-bottom:12px; padding:18px; border-radius:18px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border); }
+        .txn-side { text-align: right; min-width: 145px; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 2000; backdrop-filter: blur(2px); }
+        .overlay.active { display: block; }
+        
+        .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        .plan-card { background: var(--card); padding: 25px; border-radius: 24px; border: 2px solid transparent; text-align: center; }
+        .plan-card.basic { border-color: var(--blue); }
+        .plan-card.pro { border-color: var(--purple); }
+        .plan-card.lifetime { border-color: var(--gold); }
+        .plan-price { font-size: 2rem; font-weight: 800; margin: 15px 0; color: var(--blue); }
+        .plan-price.pro-price { color: var(--purple); }
+        .plan-price.lifetime-price { color: var(--gold); }
+        .feature-list { text-align: left; margin: 20px 0; }
+        .feature-list p { margin: 10px 0; display: flex; align-items: center; gap: 10px; }
+        .check { color: var(--green); }
+        .lock { color: var(--red); opacity: 0.5; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div id="auth-container" style="display: block; width: 100%; max-width: 400px; margin: 100px auto; padding: 20px;">
+    <div class="card" style="text-align: center;">
+        <h2 style="color: var(--blue)">Budget Pro</h2>
+        <div id="signup-fields" style="display:none;"><input type="text" id="username" placeholder="Username"></div>
+        <input type="email" id="email" placeholder="Email">
+        <div class="pass-wrapper">
+            <input type="password" id="password" placeholder="Password">
+            <span class="toggle-btn" onclick="togglePass('password', this)">👁️</span>
+        </div>
+        <div id="auth-err" class="err-msg"></div>
+        <button id="login-btn" onclick="login()">Log Masuk</button>
+        <button id="signup-btn" style="display:none;" onclick="signup()">Daftar Sekarang</button>
+        <button id="toggle-auth-btn" onclick="toggleAuth()" style="background:none; border:none; color:var(--blue); margin-top:15px; cursor:pointer; font-weight: bold;">Daftar Akaun Baru</button>
+    </div>
+</div>
+
+<div id="app-shell" style="display: none; width: 100%;">
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="lang-picker">
+                <select id="lang-select" onchange="changeLang(this.value)">
+                    <option value="ms">🇲🇾 MS</option><option value="en">🇺🇸 EN</option><option value="id">🇮🇩 ID</option>
+                </select>
+            </div>
+            <div id="user-av" class="avatar-circle">?</div>
+            <strong id="user-display">...</strong><br>
+            <small id="user-email-display" style="opacity: 0.6; font-size: 0.8rem;"></small>
+            <div id="plan-badge" class="plan-badge">PERCUBAAN</div>
+        </div>
+        <div style="flex:1;">
+            <div class="nav-item active" onclick="showPage('dashboard', this)" id="nav-dash">🏠 Dashboard</div>
+            <div class="nav-item" onclick="showPage('premium', this)" id="nav-prem">💎 Premium</div>
+            <div class="nav-item" onclick="showPage('settings', this)" id="nav-sett">⚙️ Tetapan</div>
+        </div>
+        <div class="nav-item" onclick="logout()" style="color:var(--red); font-weight:700; border-top:1px solid var(--border); margin-top: auto;" id="nav-logout">🚪 Log Keluar</div>
+    </nav>
+
+    <main class="main-content">
+        <div id="page-dashboard" class="page active">
+            <div class="hero">
+                <div class="hero-top-row">
+                    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                    <small><span id="txt-balance-label">BAKI SEMASA</span> (<span id="curr-label">MYR</span>)</small>
+                    <select id="hero-curr-drop" onchange="updateGlobalCurr(this.value)" style="width: auto; background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px; border-radius: 8px; cursor: pointer;">
+                        <option value="RM">MYR</option><option value="$">USD</option><option value="B$">BND</option><option value="S$">SGD</option><option value="Rp">IDR</option>
+                    </select>
+                </div>
+                <h1 id="total-balance" style="margin: 15px 0; font-size: 2.5rem; font-weight: 800;">0.00</h1>
+                <div style="display:flex; justify-content:space-around; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 20px;">
+                    <div><small id="txt-inc">Masuk</small><br><strong id="total-inc">0.00</strong></div>
+                    <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+                    <div><small id="txt-exp">Keluar</small><br><strong id="total-exp">0.00</strong></div>
+                </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                <div style="flex: 1.5; min-width: 320px;">
+                    <div class="card">
+                        <h4 id="txt-add-record">📝 Tambah Rekod</h4>
+                        <input type="text" id="txn-desc" placeholder="...">
+                        <select id="txn-cat"></select>
+                        <input type="number" id="txn-amt" placeholder="...">
+                        <button onclick="saveTxn()" id="btn-save">Simpan</button>
+                    </div>
+                    
+                    <!-- EXPORT CSV (PREMIUM) -->
+                    <div class="card" id="export-card">
+                        <h4>📤 Export CSV</h4>
+                        <p><small id="txt-export-desc">Export transaksi ke fail CSV (Premium)</small></p>
+                        <button onclick="exportCSV()" id="btn-export" class="btn-pro" style="background: var(--purple);">Export CSV</button>
+                    </div>
+                    
+                    <ul id="list"></ul>
+                </div>
+                <div style="flex: 1; min-width: 300px;"><div class="card"><h4 id="txt-analysis">📊 Analisis</h4><canvas id="chart"></canvas></div></div>
+            </div>
+        </div>
+
+        <!-- PREMIUM PAGE -->
+        <div id="page-premium" class="page">
+            <div class="hero">
+                <button class="menu-btn" onclick="toggleSidebar()" style="position:absolute; left:20px;">☰</button>
+                <h2>💎 Langganan Premium</h2>
+            </div>
+            
+            <div class="plan-grid">
+                <div class="plan-card basic">
+                    <h3>Basic</h3>
+                    <div class="plan-price">RM6.90<span style="font-size:1rem;">/bulan</span></div>
+                    <div class="feature-list">
+                        <p><span class="check">✔️</span> Budget Limit</p>
+                        <p><span class="check">✔️</span> Monthly Filter</p>
+                        <p><span class="lock">🔒</span> Export CSV</p>
+                        <p><span class="lock">🔒</span> Analisis Lanjutan</p>
+                    </div>
+                    <button onclick="activatePlan('basic')" id="btn-basic" class="btn-pro">Langgan Basic</button>
+                </div>
+
+                <div class="plan-card pro">
+                    <h3>Pro</h3>
+                    <div class="plan-price pro-price">RM12.90<span style="font-size:1rem;">/bulan</span></div>
+                    <div class="feature-list">
+                        <p><span class="check">✔️</span> Semua Basic</p>
+                        <p><span class="check">✔️</span> Export CSV</p>
+                        <p><span class="check">✔️</span> Analisis Lanjutan</p>
+                        <p><span class="check">✔️</span> Multi-mata wang</p>
+                    </div>
+                    <button onclick="activatePlan('pro')" id="btn-pro" class="btn-pro">Langgan Pro</button>
+                </div>
+
+                <div class="plan-card lifetime">
+                    <h3>Lifetime</h3>
+                    <div class="plan-price lifetime-price">RM49<span style="font-size:1rem;">/sekali</span></div>
+                    <div class="feature-list">
+                        <p><span class="check">✔️</span> Semua Pro Selamanya</p>
+                        <p><span class="check">✔️</span> Akses Premium</p>
+                        <p><span class="check">✔️</span> Update Percuma</p>
+                        <p><span class="check">✔️</span> Sokongan Priority</p>
+                    </div>
+                    <button onclick="activatePlan('lifetime')" id="btn-lifetime" class="btn-pro">Beli Lifetime</button>
+                </div>
+            </div>
+
+            <div class="card" style="text-align: center;">
+                <h4>Plan Semasa: <span id="current-plan-display">Percuma</span></h4>
+                <div id="expiry-info"></div>
+            </div>
+        </div>
+
+        <div id="page-settings" class="page">
+            <div class="hero">
+                <button class="menu-btn" onclick="toggleSidebar()" style="position:absolute; left:20px;">☰</button>
+                <h2 id="txt-sett-title">⚙️ Tetapan</h2>
+            </div>
+            
+            <div class="card">
+                <h4 id="txt-prof-title">👤 Profil Pengguna</h4>
+                <div class="info-row"><span id="txt-u">Username:</span> <strong id="set-username">-</strong></div>
+                <div class="info-row"><span id="txt-e">Emel:</span> <strong id="set-email">-</strong></div>
+                <div class="info-row"><span>Plan:</span> <strong id="set-plan">Percuma</strong></div>
+                <div class="info-row"><span id="txt-j">Tarikh Daftar:</span> <strong id="set-joined">-</strong></div>
+                <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+                <label id="txt-change-u" style="font-size:0.8rem; font-weight:bold;">Tukar Username:</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <input type="text" id="new-username" style="margin-bottom:0;" placeholder="Nama baru">
+                    <button onclick="updateUsername()" style="width:100px;" id="btn-update-u">Simpan</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4 id="txt-sec-title">🔒 Keselamatan</h4>
+                <p style="font-size: 0.85rem; opacity: 0.7;">Syarat: Huruf besar, kecil & nombor (min 6 aksara).</p>
+                <div class="pass-wrapper">
+                    <input type="password" id="new-pw" placeholder="Password Baru">
+                    <span class="toggle-btn" onclick="togglePass('new-pw', this)">👁️</span>
+                </div>
+                <div id="sec-err" class="err-msg"></div>
+                <button onclick="updatePassword()" style="background: var(--blue); margin-top:10px;" id="btn-update-pw">Update Password</button>
+            </div>
+
+            <div class="card">
+                <h4 id="txt-theme">Penampilan</h4>
+                <button onclick="document.body.classList.toggle('dark-mode')" id="btn-theme">Tukar Tema</button>
+            </div>
+
+            <div class="card" style="text-align: center; opacity: 0.8;">
+                <h4 id="txt-info-app">ℹ️ Maklumat Aplikasi</h4>
+                <p id="txt-app-desc">Urus kewangan anda dengan bijak. Upgrade ke Premium untuk lebih features!</p>
+                <small id="txt-copy">© 2026 Budget Pro</small>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+// --- KONFIGURASI FIREBASE ---
+const firebaseConfig = {
+    apiKey: "AIzaSyBw9wZe5giXZkcLoa87hAJbBspYWymw54k",
+    authDomain: "budgettracker-cc1f7.firebaseapp.com",
+    projectId: "budgettracker-cc1f7",
+    storageBucket: "budgettracker-cc1f7.firebasestorage.app",
+    messagingSenderId: "20277579903",
+    appId: "1:20277579903:web:78312ae72688a2d283af4a",
+    measurementId: "G-4XMB43PRQ2"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth(), db = firebase.firestore();
+
+// PLAN LEVELS
+const PLAN_LEVEL = { free: 0, basic: 1, pro: 2, lifetime: 3 };
+let currentUser = null;
+let currentPlan = "free";
+let subscriptionEndDate = null;
+
+// MAPS & BAHASA
+const catMap = {
+    "Makanan": { ms: "🍔 Makanan", en: "🍔 Food", id: "🍔 Makanan" },
+    "Gaji": { ms: "💰 Gaji", en: "💰 Salary", id: "💰 Gaji" },
+    "Transport": { ms: "🚗 Transport", en: "🚗 Transport", id: "🚗 Transportasi" },
+    "Shopping": { ms: "🛒 Shopping", en: "🛒 Shopping", id: "🛒 Belanja" },
+    "Hiburan": { ms: "🎮 Hiburan", en: "🎮 Entertainment", id: "🎮 Hiburan" },
+    "Lain-lain": { ms: "✨ Lain-lain", en: "✨ Others", id: "✨ Lainnya" }
+};
+
+const langData = {
+    ms: {
+        navDash: "🏠 Dashboard", navPrem: "💎 Premium", navSett: "⚙️ Tetapan", navLogout: "🚪 Log Keluar", 
+        balLabel: "BAKI SEMASA", inc: "Masuk", exp: "Keluar", addRec: "📝 Tambah Rekod", 
+        descPh: "Keterangan", amtPh: "Jumlah", save: "Simpan Rekod", analysis: "📊 Analisis", 
+        settTitle: "⚙️ Tetapan", profTitle: "👤 Profil Pengguna", u: "Username:", e: "Emel:", 
+        j: "Tarikh Daftar:", changeU: "Tukar Username:", updateU: "Simpan",
+        secTitle: "🔒 Keselamatan", updatePw: "Update Password", theme: "Penampilan", btnTheme: "Tukar Tema",
+        infoApp: "ℹ️ Maklumat Aplikasi", appDesc: "Urus kewangan anda dengan bijak.", copy: "© 2026 Hak Cipta Terpelihara",
+        delBtn: "🗑️ Padam", exportDesc: "Export transaksi ke fail CSV (Premium)", free: "PERCUBAAN"
+    },
+    en: {
+        navDash: "🏠 Dashboard", navPrem: "💎 Premium", navSett: "⚙️ Settings", navLogout: "🚪 Logout", 
+        balLabel: "CURRENT BALANCE", inc: "Income", exp: "Expense", addRec: "📝 Add Record", 
+        descPh: "Description", amtPh: "Amount", save: "Save Record", analysis: "📊 Analysis", 
+        settTitle: "⚙️ Settings", profTitle: "👤 User Profile", u: "Username:", e: "Email:", 
+        j: "Joined Date:", changeU: "Change Username:", updateU: "Save",
+        secTitle: "🔒 Security", updatePw: "Update Password", theme: "Appearance", btnTheme: "Toggle Theme",
+        infoApp: "ℹ️ App Info", appDesc: "Manage your finances smarter.", copy: "© 2026 All Rights Reserved",
+        delBtn: "🗑️ Delete", exportDesc: "Export transactions to CSV (Premium)", free: "FREE"
+    },
+    id: {
+        navDash: "🏠 Dashboard", navPrem: "💎 Premium", navSett: "⚙️ Pengaturan", navLogout: "🚪 Keluar", 
+        balLabel: "SALDO SAAT INI", inc: "Pemasukan", exp: "Pengeluaran", addRec: "📝 Tambah Catatan", 
+        descPh: "Keterangan", amtPh: "Jumlah", save: "Simpan Catatan", analysis: "📊 Analisis", 
+        settTitle: "⚙️ Pengaturan", profTitle: "👤 Profil Pengguna", u: "Username:", e: "Email:", 
+        j: "Tanggal Daftar:", changeU: "Ubah Username:", updateU: "Simpan",
+        secTitle: "🔒 Keamanan", updatePw: "Perbarui Sandi", theme: "Tampilan", btnTheme: "Ganti Tema",
+        infoApp: "ℹ️ Informasi Aplikasi", appDesc: "Kelola keuangan anda dengan bijak.", copy: "© 2026 Hak Cipta Dilindungi",
+        delBtn: "🗑️ Hapus", exportDesc: "Ekspor transaksi ke CSV (Premium)", free: "GRATIS"
+    }
+};
+const rates = { 'RM': 1, '$': 0.26, 'B$': 0.32, 'S$': 0.32, 'Rp': 4,315.28 };
+let myChart, curr = 'RM', globalDocs = [];
+
+// UTILS
+function isPasswordStrong(pw) { return /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /\d/.test(pw) && pw.length >= 6; }
+
+async function isUsernameTaken(name) {
+    try {
+        const snap = await db.collection("users").where("username", "==", name).limit(1).get();
+        return !snap.empty;
+    } catch (e) { return false; }
+}
+
+function togglePass(id, btn) {
+    const p = document.getElementById(id); p.type = p.type === "password" ? "text" : "password";
+    btn.innerText = p.type === "password" ? "👁️" : "🙈";
+}
+
+// PLAN CHECK
+function requirePlan(planNeeded) {
+    if(PLAN_LEVEL[currentPlan] < PLAN_LEVEL[planNeeded]) {
+        alert(`Upgrade ke ${planNeeded.toUpperCase()} untuk guna feature ini 💎`);
+        return false;
+    }
+    return true;
+}
+
+function checkSubscriptionExpiry(sub) {
+    if(!sub || sub.plan === "lifetime") return sub?.plan || "free";
+    if(sub.endDate) {
+        const now = new Date();
+        const end = sub.endDate.toDate();
+        if(now > end) return "free";
+    }
+    return sub.plan || "free";
+}
+
+// UI LOGIC
+function changeLang(lang) {
+    const d = langData[lang];
+    document.getElementById('nav-dash').innerText = d.navDash;
+    document.getElementById('nav-prem').innerText = d.navPrem;
+    document.getElementById('nav-sett').innerText = d.navSett;
+    document.getElementById('nav-logout').innerText = d.navLogout;
+    document.getElementById('txt-balance-label').innerText = d.balLabel;
+    document.getElementById('txt-inc').innerText = d.inc;
+    document.getElementById('txt-exp').innerText = d.exp;
+    document.getElementById('txt-add-record').innerText = d.addRec;
+    document.getElementById('txn-desc').placeholder = d.descPh;
+    document.getElementById('txn-amt').placeholder = d.amtPh;
+    document.getElementById('btn-save').innerText = d.save;
+    document.getElementById('txt-analysis').innerText = d.analysis;
+    document.getElementById('txt-sett-title').innerText = d.settTitle;
+    document.getElementById('txt-prof-title').innerText = d.profTitle;
+    document.getElementById('txt-u').innerText = d.u;
+    document.getElementById('txt-e').innerText = d.e;
+    document.getElementById('txt-j').innerText = d.j;
+    document.getElementById('txt-change-u').innerText = d.changeU;
+    document.getElementById('btn-update-u').innerText = d.updateU;
+    document.getElementById('txt-sec-title').innerText = d.secTitle;
+    document.getElementById('btn-update-pw').innerText = d.updatePw;
+    document.getElementById('txt-theme').innerText = d.theme;
+    document.getElementById('btn-theme').innerText = d.btnTheme;
+    document.getElementById('txt-info-app').innerText = d.infoApp;
+    document.getElementById('txt-app-desc').innerText = d.appDesc;
+    document.getElementById('txt-copy').innerText = d.copy;
+    document.getElementById('txt-export-desc').innerText = d.exportDesc;
+
+    const catSelect = document.getElementById('txn-cat');
+    catSelect.innerHTML = "";
+    Object.keys(catMap).forEach(key => {
+        const opt = document.createElement('option');
+        opt.value = key; opt.innerText = catMap[key][lang];
+        catSelect.appendChild(opt);
+    });
+    localStorage.setItem('selectedLang', lang);
+    if(globalDocs.length > 0) updateUI(globalDocs);
+}
+
+// AUTH
+auth.onAuthStateChanged(user => {
+    if(user) {
+        currentUser = user;
+        document.getElementById('app-shell').style.display = 'block';
+        document.getElementById('auth-container').style.display = 'none';
+        const lang = localStorage.getItem('selectedLang') || 'ms';
+        document.getElementById('lang-select').value = lang;
+        changeLang(lang);
+        
+        // Monitor user subscription
+        db.collection("users").doc(user.uid).onSnapshot(doc => {
+            if(doc.exists) {
+                const data = doc.data();
+                document.getElementById('user-display').innerText = data.username;
+                document.getElementById('set-username').innerText = data.username;
+                document.getElementById('user-email-display').innerText = user.email;
+                document.getElementById('set-email').innerText = user.email;
+                document.getElementById('user-av').innerText = (data.username[0] || '?').toUpperCase();
+                document.getElementById('set-joined').innerText = new Date(user.metadata.creationTime).toLocaleDateString('ms-MY');
+                
+                // Check subscription
+                if(data.subscription) {
+                    const sub = data.subscription;
+                    currentPlan = checkSubscriptionExpiry(sub);
+                    subscriptionEndDate = sub.endDate;
+                    
+                    // Update UI
+                    const badge = document.getElementById('plan-badge');
+                    badge.innerText = currentPlan.toUpperCase();
+                    if(currentPlan === 'lifetime') badge.classList.add('gold');
+                    else badge.classList.remove('gold');
+                    
+                    document.getElementById('set-plan').innerText = currentPlan.toUpperCase();
+                    
+                    if(subscriptionEndDate && currentPlan !== 'lifetime') {
+                        const expiryDate = subscriptionEndDate.toDate().toLocaleDateString('ms-MY');
+                        document.getElementById('expiry-info').innerHTML = `<small>Tamat: ${expiryDate}</small>`;
+                    } else {
+                        document.getElementById('expiry-info').innerHTML = '';
+                    }
+                    
+                    document.getElementById('current-plan-display').innerText = currentPlan.toUpperCase();
+                }
+            }
+        });
+        
+        // Load transactions
+        db.collection("users").doc(user.uid).collection("transactions").orderBy("id","desc").onSnapshot(snap => {
+            globalDocs = snap.docs;
+            updateUI(snap.docs);
+        });
+    } else {
+        currentUser = null;
+        currentPlan = "free";
+        document.getElementById('app-shell').style.display = 'none';
+        document.getElementById('auth-container').style.display = 'block';
+    }
+});
+
+function login() { 
+    const e = document.getElementById('email').value, p = document.getElementById('password').value;
+    auth.signInWithEmailAndPassword(e, p).catch(err => {
+        const errBox = document.getElementById('auth-err');
+        errBox.innerText = "Email/Password salah!";
+        errBox.style.display = "block";
+        errBox.style.color = "var(--red)";
+    }); 
+}
+
+async function signup() {
+    const n = document.getElementById('username').value.trim(), e = document.getElementById('email').value.trim(), p = document.getElementById('password').value;
+    const errBox = document.getElementById('auth-err');
+    if(!n || !e || !p) { alert("Sila isi semua ruangan!"); return; }
+
+    errBox.innerText = "Menyemak maklumat...";
+    errBox.style.display = 'block';
+    errBox.style.color = "orange";
+
+    if(await isUsernameTaken(n)) {
+        errBox.innerText = "Username sudah digunakan!";
+        errBox.style.color = "var(--red)";
+        return;
+    }
+
+    if(!isPasswordStrong(p)) {
+        errBox.innerText = "Password lemah! (Huruf besar, kecil, nombor, min 6 aksara).";
+        errBox.style.color = "var(--red)";
+        return;
+    }
+    
+    auth.createUserWithEmailAndPassword(e, p).then(c => {
+        db.collection("users").doc(c.user.uid).set({ 
+            username: n, 
+            email: e,
+            subscription: {
+                plan: "free",
+                status: "active",
+                startDate: null,
+                endDate: null
+            }
+        });
+    }).catch(err => {
+        errBox.innerText = err.message;
+        errBox.style.color = "var(--red)";
+    });
+}
+
+function updateUI(docs) {
+    const list = document.getElementById('list'); list.innerHTML = "";
+    const lang = localStorage.getItem('selectedLang') || 'ms';
+    const d = langData[lang];
+    let bal=0, inc=0, exp=0, currentCats = {};
+    
+    docs.forEach(doc => {
+        const t = doc.data(); 
+        const rAmt = parseFloat(t.amount); 
+        const cAmt = rAmt * rates[curr];
+        const displayCat = catMap[t.category] ? catMap[t.category][lang] : t.category;
+        
+        if(rAmt > 0) inc += cAmt; else { 
+            exp += cAmt; 
+            currentCats[displayCat] = (currentCats[displayCat]||0) + Math.abs(cAmt); 
+        }
+        bal += cAmt;
+        
+        const li = document.createElement('li');
+        li.innerHTML = `<div><strong>${t.desc}</strong><br><small>${displayCat}</small></div>
+                        <div class="txn-side" style="color:${rAmt>0?'var(--green)':'var(--red)'}">${curr}${Math.abs(cAmt).toFixed(2)}<br>
+                        <button onclick="delTxn('${doc.id}')" style="background:none; border:none; color:#ccc; font-size:10px; cursor:pointer;">${d.delBtn}</button></div>`;
+        list.appendChild(li);
+    });
+    
+    document.getElementById('total-balance').innerText = `${curr}${bal.toFixed(2)}`;
+    document.getElementById('total-inc').innerText = inc.toFixed(2);
+    document.getElementById('total-exp').innerText = Math.abs(exp).toFixed(2);
+    renderChart(currentCats);
+}
+
+function renderChart(data) {
+    const ctx = document.getElementById('chart').getContext('2d'); 
+    if(myChart) myChart.destroy();
+    myChart = new Chart(ctx, { 
+        type:'doughnut', 
+        data:{ 
+            labels:Object.keys(data), 
+            datasets:[{data:Object.values(data), backgroundColor:['#6c5ce7','#00d2d3','#ff9f43','#ee5253','#feca57']}] 
+        } 
+    });
+}
+
+function saveTxn() { 
+    if(!requirePlan("basic")) return;
+    
+    const d = document.getElementById('txn-desc').value, 
+          a = document.getElementById('txn-amt').value, 
+          c = document.getElementById('txn-cat').value;
+    if(d && a) {
+        db.collection("users").doc(auth.currentUser.uid).collection("transactions").add({ 
+            desc:d, 
+            amount:parseFloat(a), 
+            category:c, 
+            id:Date.now() 
+        });
+    }
+}
+
+function delTxn(id) { 
+    if(!requirePlan("basic")) return;
+    if(confirm("Padam?")) {
+        db.collection("users").doc(auth.currentUser.uid).collection("transactions").doc(id).delete(); 
+    }
+}
+
+// EXPORT CSV (PREMIUM FEATURE)
+function exportCSV() {
+    if(!requirePlan("pro")) return;
+
+    db.collection("users").doc(auth.currentUser.uid).collection("transactions").get().then(snapshot => {
+        let csv = "Description,Category,Amount\n";
+        snapshot.forEach(doc => {
+            const d = doc.data();
+            csv += `${d.desc},${d.category},${d.amount}\n`;
+        });
+
+        const blob = new Blob([csv], {type:"text/csv"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `transactions_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+// ACTIVATE PLAN (PREMIUM)
+async function activatePlan(planType) {
+    if(!currentUser) return;
+
+    let endDate = null;
+    if(planType === "basic" || planType === "pro") {
+        const future = new Date();
+        future.setMonth(future.getMonth() + 1);
+        endDate = firebase.firestore.Timestamp.fromDate(future);
+    }
+
+    await db.collection("users").doc(currentUser.uid).update({
+        subscription: {
+            plan: planType,
+            status: "active",
+            startDate: firebase.firestore.Timestamp.now(),
+            endDate: endDate
+        }
+    });
+
+    alert(`Plan ${planType.toUpperCase()} berjaya diaktifkan 🚀`);
+}
+
+async function updateUsername() { 
+    const newN = document.getElementById('new-username').value.trim(); 
+    if(!newN) return;
+    if(await isUsernameTaken(newN)) { 
+        alert("Maaf, username sudah digunakan!"); 
+        return; 
+    }
+    db.collection("users").doc(auth.currentUser.uid).update({ username: newN }).then(()=>alert("Berjaya!")); 
+}
+
+function updatePassword() { 
+    const pw = document.getElementById('new-pw').value, err = document.getElementById('sec-err');
+    if(isPasswordStrong(pw)) { 
+        auth.currentUser.updatePassword(pw).then(() => {
+            alert("Password berjaya dikemaskini!");
+            err.style.display = "none";
+        }); 
+    } else { 
+        err.innerText = "Gagal! Mesti ada kombinasi huruf besar, kecil & nombor."; 
+        err.style.display = "block"; 
+        err.style.color = "var(--red)"; 
+    }
+}
+
+function logout() { auth.signOut().then(() => location.reload()); }
+
+function toggleAuth() { 
+    const s = document.getElementById('signup-fields').style.display === 'block';
+    document.getElementById('signup-fields').style.display = s ? 'none' : 'block';
+    document.getElementById('signup-btn').style.display = s ? 'none' : 'block';
+    document.getElementById('login-btn').style.display = s ? 'block' : 'none';
+    document.getElementById('toggle-auth-btn').innerText = s ? "Daftar Akaun Baru" : "Log Masuk";
+}
+
+function updateGlobalCurr(val) { 
+    curr = val; 
+    document.getElementById('curr-label').innerText = val; 
+    if(globalDocs.length > 0) updateUI(globalDocs); 
+}
+
+function toggleSidebar() { 
+    document.getElementById('sidebar').classList.toggle('active'); 
+    document.getElementById('overlay').classList.toggle('active'); 
+}
+
+function showPage(id, el) { 
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
+    document.getElementById('page-'+id).classList.add('active'); 
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if(el) el.classList.add('active'); 
+    toggleSidebar(); 
+}
+</script>
+</body>
+</html>

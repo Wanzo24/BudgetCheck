@@ -1,0 +1,16 @@
+{
+  "short_name": "BudgetPro",
+  "name": "Budget Pro - Pengurus Kewangan",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2933/2933116.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#3498db",
+  "background_color": "#f4f7f6"
+}
