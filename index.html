@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Budget Pro Premium v2.4.1</title>
+    <title>Budget Pro Premium v2.4.2</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Budget Pro">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/10149/10149458.png">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/10149/10149458.png">
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -18,11 +27,10 @@
         .dark-mode { 
             --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --subtext: #94a3b8; --border: #334155;
         }
-        * { box-sizing: border-box; } /* Memastikan semua elemen simetri secara global */
+        * { box-sizing: border-box; } 
 
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 100px; transition: 0.3s; -webkit-tap-highlight-color: transparent; }
         
-        /* Glassmorphism Section */
         .hero { 
             background: linear-gradient(135deg, var(--primary), #818cf8); 
             padding: 30px; border-radius: 32px; color: white; margin-bottom: 20px;
@@ -40,7 +48,6 @@
             text-align: center;
         }
 
-        /* Symmetric Auth Layout */
         #auth-container-wrapper { 
             display: flex; min-height: 100vh; align-items: center; justify-content: center; 
             padding: 20px; background: var(--bg);
@@ -60,12 +67,10 @@
             transition: 0.2s; display: block;
         }
 
-        /* UI Navigation */
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: var(--card); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border); z-index: 2000; box-shadow: 0 -10px 30px rgba(0,0,0,0.05); padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--subtext); cursor: pointer; flex: 1; transition: 0.3s; }
         .nav-item.active { color: var(--primary); font-weight: 800; }
         
-        /* Components */
         .budget-card { background: var(--card); padding: 24px; border-radius: 28px; margin-bottom: 25px; border: 1px solid var(--border); }
         .progress-container { background: var(--bg); height: 10px; border-radius: 10px; margin: 15px 0 10px; overflow: hidden; }
         .progress-bar { height: 100%; width: 0%; transition: 0.5s; background: var(--success); }
@@ -84,16 +89,12 @@
         <div style="font-size: 55px; margin-bottom: 15px;">🌎</div>
         <h2 id="auth-title" style="color: var(--primary); font-size: 30px; margin: 0; font-weight: 800;">Budget Pro</h2>
         <p id="auth-subtitle" data-key="sub_title" style="margin-bottom: 30px;">Versi Antarabangsa Premium</p>
-        
         <div id="signup-fields" style="display:none;"><input type="text" id="username" data-placeholder="ph_name" placeholder="Nama Penuh"></div>
         <input type="email" id="email" data-placeholder="ph_email" placeholder="Alamat Emel">
         <input type="password" id="password" data-placeholder="ph_pass" placeholder="Kata Laluan">
-        
         <button id="forgot-btn" onclick="resetPassword()" style="background:none; border:none; color:var(--subtext); font-size: 13px; font-weight: 700; margin-bottom: 20px; width:100%;" data-key="forgot_pass">Lupa Kata Laluan?</button>
-        
         <button id="login-btn" class="btn-pro" onclick="login()" data-key="btn_login">Log Masuk</button>
         <button id="signup-btn" class="btn-pro" style="display:none;" onclick="signup()" data-key="btn_signup">Daftar Sekarang</button>
-        
         <div style="margin-top: 25px; border-top: 1px solid var(--border); padding-top: 20px;">
             <button id="toggle-auth-btn" onclick="toggleAuth()" style="background:none; border:none; color:var(--primary); font-weight:700; font-size: 14px; cursor:pointer;" data-key="toggle_signup">Cipta Akaun Baru</button>
         </div>
@@ -140,12 +141,12 @@
             <div style="background:var(--card); padding:25px; border-radius:24px; border:1px solid var(--border); text-align:center; position:relative; overflow:hidden;">
                 <div style="position:absolute; top:-10px; right:-10px; font-size:50px; opacity:0.05;">📱</div>
                 <h4 style="margin:0; font-weight:800; color:var(--primary);">Budget Pro Premium</h4>
-                <p style="font-size:12px; margin:5px 0; font-weight:700;">Version 2.4.1 (Stable Build)</p>
+                <p style="font-size:12px; margin:5px 0; font-weight:700;">Version 2.4.2 (App Mode Enabled)</p>
                 <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border); font-size:11px; color:var(--subtext);">
                     <p style="margin:2px 0;">Developed by <strong>W-Tech</strong></p>
                     <p style="margin:2px 0;">© 2026 All Rights Reserved</p>
                 </div>
-                <button onclick="alert('Aplikasi anda dikemaskini!')" style="margin-top:15px; background:none; border:1px solid var(--primary); color:var(--primary); padding:6px 15px; border-radius:10px; font-size:10px; font-weight:800; cursor:pointer;">SEMAK KEMASKINI</button>
+                <button onclick="alert('PWA Mode Active!')" style="margin-top:15px; background:none; border:1px solid var(--primary); color:var(--primary); padding:6px 15px; border-radius:10px; font-size:10px; font-weight:800; cursor:pointer;">SEMAK KEMASKINI</button>
             </div>
         </div>
     </main>
@@ -162,6 +163,7 @@
 </div>
 
 <script>
+// Script Firebase & Logic dikekalkan sama seperti kod anda
 const firebaseConfig = {
   apiKey: "AIzaSyBw9wZe5giXZkcLoa87hAJbBspYWymw54k",
   authDomain: "budgettracker-cc1f7.firebaseapp.com",
