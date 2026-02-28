@@ -1,424 +1,272 @@
-<!DOCTYPE html><html lang="ms">
+<!DOCTYPE html>
+<html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Budget Pro - Final Stable Version</title>
-    <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#3498db">
-
-<script>
-  // Daftarkan Service Worker
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker didaftarkan!', reg))
-        .catch(err => console.log('Gagal daftar SW', err));
-    });
-  }
-</script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Budget Pro Premium v2.4.1</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
-        :root { --green:#2ecc71; --red:#e74c3c; --blue:#3498db; --bg:#f4f7f6; --sidebar:#ffffff; --card:#ffffff; --text:#2d3436; --border:#e1e8ed; }
-        .dark-mode { --bg:#121212; --sidebar:#1e1e1e; --card:#1e1e1e; --text:#f5f6fa; --border:#2d3436; }
-        body { font-family:'Inter', sans-serif; background:var(--bg); color:var(--text); margin:0; display: flex; height: 100vh; overflow: hidden; transition: 0.3s; }
-        
-        /* SIDEBAR */
-        .sidebar { position: fixed; left: -280px; top: 0; width: 280px; height: 100%; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; transition: 0.4s; z-index: 2500; box-sizing: border-box; }
-        .sidebar.active { left: 0; box-shadow: 10px 0 30px rgba(0,0,0,0.1); }
-        .sidebar-header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; position: relative; }
-        
-        .lang-picker { position: absolute; top: -10px; right: -10px; }
-        .lang-picker select { font-size: 10px; padding: 4px; border-radius: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+        :root { 
+            --primary: #6366f1; --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --subtext: #64748b; --border: #e2e8f0;
+        }
+        .dark-mode { 
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --subtext: #94a3b8; --border: #334155;
+        }
+        * { box-sizing: border-box; } /* Memastikan semua elemen simetri secara global */
 
-        .avatar-circle { width: 60px; height: 60px; background: var(--blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 22px; font-weight: bold; border: 2px solid #fff; }
-        .nav-item { padding: 15px; border-radius: 12px; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; font-weight: 600; color: var(--text); }
-        .nav-item.active { background: var(--blue); color: white; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 100px; transition: 0.3s; -webkit-tap-highlight-color: transparent; }
+        
+        /* Glassmorphism Section */
+        .hero { 
+            background: linear-gradient(135deg, var(--primary), #818cf8); 
+            padding: 30px; border-radius: 32px; color: white; margin-bottom: 20px;
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+            position: relative; overflow: hidden;
+        }
+        .stats-grid { display: flex; gap: 12px; margin-top: 20px; }
+        .stat-box { 
+            flex: 1; 
+            background: rgba(255, 255, 255, 0.15); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+            padding: 15px; border-radius: 20px; 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
 
-        .main-content { flex: 1; overflow-y: auto; height: 100vh; padding: 20px; box-sizing: border-box; }
-        .page { display: none; max-width: 1000px; margin: auto; animation: fadeIn 0.3s; padding-bottom: 80px; }
+        /* Symmetric Auth Layout */
+        #auth-container-wrapper { 
+            display: flex; min-height: 100vh; align-items: center; justify-content: center; 
+            padding: 20px; background: var(--bg);
+        }
+        .auth-card { 
+            width: 100%; max-width: 400px; text-align: center; background: var(--card); 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); padding: 45px 30px; border-radius: 35px;
+        }
+        input, select { 
+            width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 16px; 
+            border: 1px solid var(--border); background: var(--bg); color: var(--text); 
+            font-size: 15px; outline: none; display: block;
+        }
+        .btn-pro { 
+            width: 100%; padding: 18px; border: none; border-radius: 18px; 
+            font-weight: 700; cursor: pointer; background: var(--primary); color: white; 
+            transition: 0.2s; display: block;
+        }
+
+        /* UI Navigation */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: var(--card); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border); z-index: 2000; box-shadow: 0 -10px 30px rgba(0,0,0,0.05); padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--subtext); cursor: pointer; flex: 1; transition: 0.3s; }
+        .nav-item.active { color: var(--primary); font-weight: 800; }
+        
+        /* Components */
+        .budget-card { background: var(--card); padding: 24px; border-radius: 28px; margin-bottom: 25px; border: 1px solid var(--border); }
+        .progress-container { background: var(--bg); height: 10px; border-radius: 10px; margin: 15px 0 10px; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; transition: 0.5s; background: var(--success); }
+        .page { display: none; padding: 20px; max-width: 600px; margin: auto; animation: slideUp 0.4s ease; }
         .page.active { display: block; }
-
-        .hero { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; padding: 30px; border-radius: 28px; text-align: center; margin-bottom: 25px; position: relative; }
-        .hero-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .menu-btn { background: rgba(255, 255, 255, 0.2); color: white; border: none; width: 42px; height: 42px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        
-        .card { background: var(--card); padding: 25px; border-radius: 24px; border: 1px solid var(--border); margin-bottom: 20px; }
-        input, select { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text); box-sizing: border-box; outline: none; }
-        button.btn-pro { padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; background: var(--blue); color: white; }
-
-        .pass-wrapper { position: relative; width: 100%; margin-bottom: 12px; }
-        .toggle-btn { position: absolute; right: 15px; top: 14px; cursor: pointer; opacity: 0.8; font-size: 16px; z-index: 10; }
-        .err-msg { color: var(--red); font-size: 0.75rem; text-align: left; margin-top: 5px; margin-bottom: 10px; display: none; font-weight: 600; }
-
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; }
-        li { background:var(--card); margin-bottom:12px; padding:18px; border-radius:18px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border); }
-        .txn-side { text-align: right; min-width: 145px; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 2000; backdrop-filter: blur(2px); }
-        .overlay.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        li { background: var(--card); margin-bottom: 12px; padding: 16px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; z-index: 3000; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--card); width: 100%; padding: 30px; border-radius: 30px 30px 0 0; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-
-<div id="auth-container" style="display: block; width: 100%; max-width: 400px; margin: 100px auto; padding: 20px;">
-    <div class="card" style="text-align: center;">
-        <h2 style="color: var(--blue)">Budget Pro</h2>
-        <div id="signup-fields" style="display:none;"><input type="text" id="username" placeholder="Username"></div>
-        <input type="email" id="email" placeholder="Email">
-        <div class="pass-wrapper">
-            <input type="password" id="password" placeholder="Password">
-            <span class="toggle-btn" onclick="togglePass('password', this)">👁️</span>
+<div id="auth-container-wrapper">
+    <div class="auth-card">
+        <div style="font-size: 55px; margin-bottom: 15px;">🌎</div>
+        <h2 id="auth-title" style="color: var(--primary); font-size: 30px; margin: 0; font-weight: 800;">Budget Pro</h2>
+        <p id="auth-subtitle" data-key="sub_title" style="margin-bottom: 30px;">Versi Antarabangsa Premium</p>
+        
+        <div id="signup-fields" style="display:none;"><input type="text" id="username" data-placeholder="ph_name" placeholder="Nama Penuh"></div>
+        <input type="email" id="email" data-placeholder="ph_email" placeholder="Alamat Emel">
+        <input type="password" id="password" data-placeholder="ph_pass" placeholder="Kata Laluan">
+        
+        <button id="forgot-btn" onclick="resetPassword()" style="background:none; border:none; color:var(--subtext); font-size: 13px; font-weight: 700; margin-bottom: 20px; width:100%;" data-key="forgot_pass">Lupa Kata Laluan?</button>
+        
+        <button id="login-btn" class="btn-pro" onclick="login()" data-key="btn_login">Log Masuk</button>
+        <button id="signup-btn" class="btn-pro" style="display:none;" onclick="signup()" data-key="btn_signup">Daftar Sekarang</button>
+        
+        <div style="margin-top: 25px; border-top: 1px solid var(--border); padding-top: 20px;">
+            <button id="toggle-auth-btn" onclick="toggleAuth()" style="background:none; border:none; color:var(--primary); font-weight:700; font-size: 14px; cursor:pointer;" data-key="toggle_signup">Cipta Akaun Baru</button>
         </div>
-        <div id="auth-err" class="err-msg"></div>
-        <button id="login-btn" class="btn-pro" onclick="login()">Log Masuk</button>
-        <button id="signup-btn" class="btn-pro" style="display:none;" onclick="signup()">Daftar Sekarang</button>
-        <button id="toggle-auth-btn" onclick="toggleAuth()" style="background:none; border:none; color:var(--blue); margin-top:15px; cursor:pointer; font-weight: bold;">Daftar Akaun Baru</button>
     </div>
 </div>
 
-<div id="app-shell" style="display: none; width: 100%;">
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="lang-picker">
-                <select id="lang-select" onchange="changeLang(this.value)">
-                    <option value="ms">🇲🇾 MS</option><option value="en">🇺🇸 EN</option><option value="id">🇮🇩 ID</option>
-                </select>
-            </div>
-            <div id="user-av" class="avatar-circle">?</div>
-            <strong id="user-display">...</strong><br>
-            <small id="user-email-display" style="opacity: 0.6; font-size: 0.8rem;"></small>
-        </div>
-        <div style="flex:1;">
-            <div class="nav-item active" onclick="showPage('dashboard', this)" id="nav-dash">🏠 Dashboard</div>
-            <div class="nav-item" onclick="showPage('settings', this)" id="nav-sett">⚙️ Tetapan</div>
-        </div>
-        <div class="nav-item" onclick="logout()" style="color:var(--red); font-weight:700; border-top:1px solid var(--border); margin-top: auto;" id="nav-logout">🚪 Log Keluar</div>
-    </nav>
-
-    <main class="main-content">
+<div id="app-shell" style="display: none;">
+    <main>
         <div id="page-dashboard" class="page active">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div><small style="color:var(--subtext); font-weight:600;" data-key="welcome">Selamat Kembali,</small><h2 id="user-display" style="margin:0; font-size:22px;">User</h2></div>
+                <div id="user-av" style="width:45px; height:45px; background:var(--primary); color:white; border-radius:15px; display:flex; align-items:center; justify-content:center; font-weight:bold;">?</div>
+            </div>
             <div class="hero">
-                <div class="hero-top-row">
-                    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-                    <small><span id="txt-balance-label">BAKI SEMASA</span> (<span id="curr-label">MYR</span>)</small>
-                    <select id="hero-curr-drop" onchange="updateGlobalCurr(this.value)" style="width: auto; background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px; border-radius: 8px; cursor: pointer;">
-                        <option value="RM">MYR</option><option value="$">USD</option><option value="B$">BND</option><option value="S$">SGD</option><option value="Rp">IDR</option>
-                    </select>
+                <div style="display:flex; justify-content:space-between;"><span style="font-weight:700; font-size:12px;" data-key="total_bal">JUMLAH BAKI</span>
+                    <select id="hero-curr-drop" onchange="updateGlobalCurr(this.value)" style="width:auto; margin:0; padding:2px 8px; background:rgba(255,255,255,0.2); border:none; color:white; border-radius:8px; font-size:11px;"><option value="RM">MYR</option><option value="$">USD</option><option value="Rp">IDR</option></select>
                 </div>
-                <h1 id="total-balance" style="margin: 15px 0; font-size: 2.5rem; font-weight: 800;">0.00</h1>
-                <div style="display:flex; justify-content:space-around; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 20px;">
-                    <div><small id="txt-inc">Masuk</small><br><strong id="total-inc">0.00</strong></div>
-                    <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
-                    <div><small id="txt-exp">Keluar</small><br><strong id="total-exp">0.00</strong></div>
+                <h1 id="total-balance">0.00</h1>
+                <div class="stats-grid">
+                    <div class="stat-box"><small style="font-size:10px; font-weight:700; display:block;" data-key="income">MASUK</small><strong id="total-inc">0.00</strong></div>
+                    <div class="stat-box"><small style="font-size:10px; font-weight:700; display:block;" data-key="expense">KELUAR</small><strong id="total-exp">0.00</strong></div>
                 </div>
             </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-                <div style="flex: 1.5; min-width: 320px;">
-                    <div class="card">
-                        <h4 id="txt-add-record">📝 Tambah Rekod</h4>
-                        <input type="text" id="txn-desc" placeholder="...">
-                        <select id="txn-cat"></select>
-                        <input type="number" id="txn-amt" placeholder="...">
-                        <button onclick="saveTxn()" class="btn-pro" id="btn-save">Simpan</button>
-                    </div>
-                    <ul id="list"></ul>
-                </div>
-                <div style="flex: 1; min-width: 300px;"><div class="card"><h4 id="txt-analysis">📊 Analisis</h4><canvas id="chart"></canvas></div></div>
+            <div class="budget-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-weight:700; font-size:14px;" data-key="monthly_limit">Had Belanja</span><button onclick="setBudgetPrompt()" style="background:none; border:1px solid var(--border); padding:5px 10px; border-radius:10px; font-size:11px;" data-key="set_limit">Set Had</button></div>
+                <h2 id="budget-display" style="margin:10px 0 0 0; color:var(--primary);">0.00</h2>
+                <div class="progress-container"><div id="budget-progress" class="progress-bar"></div></div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700;"><span id="budget-status" data-key="ready">Sedia</span><span id="budget-remaining">Baki: 0</span></div>
             </div>
+            <canvas id="chart" style="max-height: 200px; margin-bottom:20px;"></canvas>
+            <h4 data-key="recent_tx">Transaksi Terkini</h4>
+            <ul id="list" style="padding:0; list-style:none;"></ul>
         </div>
 
         <div id="page-settings" class="page">
-            <div class="hero">
-                <button class="menu-btn" onclick="toggleSidebar()" style="position:absolute; left:20px;">☰</button>
-                <h2 id="txt-sett-title">⚙️ Tetapan</h2>
+            <h2 style="font-weight:800; margin-bottom:25px;" data-key="nav_settings">Tetapan</h2>
+            <div class="card" style="background:var(--card); padding:20px; border-radius:24px; border:1px solid var(--border); margin-bottom:20px;">
+                <div style="text-align:center; margin-bottom:20px;"><div id="set-av" style="width:70px; height:70px; background:var(--primary); color:white; border-radius:20px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:28px; margin:0 auto 10px;">?</div><h3 id="set-username" style="margin:0;">-</h3><p id="set-email" style="color:var(--subtext); margin:5px 0;">-</p></div>
+                <label style="font-size:11px; font-weight:800; color:var(--subtext); margin-left:5px;" data-key="lang_label">PILIH BAHASA</label>
+                <select id="lang-switch" onchange="changeLang(this.value)"><option value="ms">Bahasa Melayu</option><option value="en">English</option><option value="id">Bahasa Indonesia</option></select>
+                <button onclick="document.body.classList.toggle('dark-mode')" class="btn-pro" style="background:var(--bg); color:var(--text); border:1px solid var(--border); margin-bottom:10px;" data-key="dark_mode">🌙 Mod Gelap / Cerah</button>
+                <button onclick="logout()" class="btn-pro" style="background:rgba(239, 68, 68, 0.1); color:var(--danger);" data-key="logout">Log Keluar</button>
             </div>
-            
-            <div class="card">
-                <h4 id="txt-prof-title">👤 Profil Pengguna</h4>
-                <div class="info-row"><span id="txt-u">Username:</span> <strong id="set-username">-</strong></div>
-                <div class="info-row"><span id="txt-e">Emel:</span> <strong id="set-email">-</strong></div>
-                <div class="info-row"><span id="txt-j">Tarikh Daftar:</span> <strong id="set-joined">-</strong></div>
-                <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
-                <label id="txt-change-u" style="font-size:0.8rem; font-weight:bold;">Tukar Username:</label>
-                <div style="display:flex; gap:10px; margin-top:5px;">
-                    <input type="text" id="new-username" style="margin-bottom:0;" placeholder="Nama baru">
-                    <button onclick="updateUsername()" class="btn-pro" style="width:100px;" id="btn-update-u">Simpan</button>
+            <div style="background:var(--card); padding:25px; border-radius:24px; border:1px solid var(--border); text-align:center; position:relative; overflow:hidden;">
+                <div style="position:absolute; top:-10px; right:-10px; font-size:50px; opacity:0.05;">📱</div>
+                <h4 style="margin:0; font-weight:800; color:var(--primary);">Budget Pro Premium</h4>
+                <p style="font-size:12px; margin:5px 0; font-weight:700;">Version 2.4.1 (Stable Build)</p>
+                <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border); font-size:11px; color:var(--subtext);">
+                    <p style="margin:2px 0;">Developed by <strong>W-Tech</strong></p>
+                    <p style="margin:2px 0;">© 2026 All Rights Reserved</p>
                 </div>
-            </div>
-
-            <div class="card">
-                <h4 id="txt-sec-title">🔒 Keselamatan</h4>
-                <p style="font-size: 0.85rem; opacity: 0.7;">Syarat: Huruf besar, kecil & nombor (min 6 aksara).</p>
-                <div class="pass-wrapper">
-                    <input type="password" id="new-pw" placeholder="Password Baru">
-                    <span class="toggle-btn" onclick="togglePass('new-pw', this)">👁️</span>
-                </div>
-                <div id="sec-err" class="err-msg"></div>
-                <button onclick="updatePassword()" class="btn-pro" style="background: var(--blue); margin-top:10px;" id="btn-update-pw">Update Password</button>
-            </div>
-
-            <div class="card">
-                <h4 id="txt-theme">Penampilan</h4>
-                <button onclick="document.body.classList.toggle('dark-mode')" class="btn-pro" id="btn-theme">Tukar Tema</button>
-            </div>
-
-            <div class="card" style="text-align: center; opacity: 0.8;">
-                <h4 id="txt-info-app">ℹ️ Maklumat Aplikasi</h4>
-                <p id="txt-app-desc">...</p>
-                <small id="txt-copy">© 2026 Budget Pro</small>
+                <button onclick="alert('Aplikasi anda dikemaskini!')" style="margin-top:15px; background:none; border:1px solid var(--primary); color:var(--primary); padding:6px 15px; border-radius:10px; font-size:10px; font-weight:800; cursor:pointer;">SEMAK KEMASKINI</button>
             </div>
         </div>
     </main>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="showPage('dashboard', this)"><span>🏠</span><span data-key="nav_home">Utama</span></div>
+        <div class="nav-item" onclick="toggleAddModal()"><div style="width:50px; height:50px; background:var(--primary); border-radius:18px; display:flex; align-items:center; justify-content:center; margin-top:-30px; color:white; font-size:25px; box-shadow:0 10px 20px rgba(99,102,241,0.3);">+</div></div>
+        <div class="nav-item" onclick="showPage('settings', this)"><span>⚙️</span><span data-key="nav_settings">Tetapan</span></div>
+    </nav>
+</div>
+
+<div id="add-modal" class="modal" onclick="if(event.target==this) toggleAddModal()">
+    <div class="modal-content"><h3 style="margin-top:0;" data-key="new_record">Rekod Baru</h3><input type="text" id="txn-desc" data-placeholder="ph_desc" placeholder="Keterangan"><select id="txn-cat"></select><input type="number" id="txn-amt" data-placeholder="ph_amt" placeholder="Jumlah"><button onclick="saveTxn()" class="btn-pro" data-key="btn_save">Simpan Rekod</button></div>
 </div>
 
 <script>
-// --- KONFIGURASI FIREBASE ---
 const firebaseConfig = {
   apiKey: "AIzaSyBw9wZe5giXZkcLoa87hAJbBspYWymw54k",
   authDomain: "budgettracker-cc1f7.firebaseapp.com",
   projectId: "budgettracker-cc1f7",
   storageBucket: "budgettracker-cc1f7.firebasestorage.app",
   messagingSenderId: "20277579903",
-  appId: "1:20277579903:web:78312ae72688a2d283af4a",
-  measurementId: "G-4XMB43PRQ2"
+  appId: "1:20277579903:web:78312ae72688a2d283af4a"
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth(), db = firebase.firestore();
 
-// MAPS & BAHASA
-const catMap = {
-    "Makanan": { ms: "🍔 Makanan", en: "🍔 Food", id: "🍔 Makanan" },
-    "Gaji": { ms: "💰 Gaji", en: "💰 Salary", id: "💰 Gaji" },
-    "Transport": { ms: "🚗 Transport", en: "🚗 Transport", id: "🚗 Transportasi" },
-    "Shopping": { ms: "🛒 Shopping", en: "🛒 Shopping", id: "🛒 Belanja" },
-    "Hiburan": { ms: "🎮 Hiburan", en: "🎮 Entertainment", id: "🎮 Hiburan" },
-    "Lain-lain": { ms: "✨ Lain-lain", en: "✨ Others", id: "✨ Lainnya" }
+const i18n = {
+    ms: { sub_title: "Versi Antarabangsa Premium", forgot_pass: "Lupa Kata Laluan?", btn_login: "Log Masuk", btn_signup: "Daftar Sekarang", toggle_signup: "Cipta Akaun Baru", toggle_login: "Dah ada akaun? Log Masuk", ph_name: "Nama Penuh", ph_email: "Alamat Emel", ph_pass: "Kata Laluan", welcome: "Selamat Kembali,", total_bal: "JUMLAH BAKI", income: "MASUK", expense: "KELUAR", monthly_limit: "Had Belanja Bulanan", set_limit: "Set Had", ready: "Sedia", recent_tx: "Transaksi Terkini", nav_home: "Utama", nav_settings: "Tetapan", dark_mode: "🌙 Mod Gelap / Cerah", logout: "Log Keluar", new_record: "Rekod Baru", ph_desc: "Keterangan", ph_amt: "Jumlah (- keluar)", btn_save: "Simpan Rekod", del_confirm: "Hapus rekod ini?", limit_exceeded: "Had Melebihi!", used: "Guna", balance: "Baki", lang_label: "PILIH BAHASA", cat_food: "Makanan", cat_salary: "Gaji", cat_trans: "Transport", cat_shop: "Shopping", cat_ent: "Hiburan", cat_other: "Lain-lain" },
+    en: { sub_title: "Premium International Version", forgot_pass: "Forgot Password?", btn_login: "Login", btn_signup: "Sign Up Now", toggle_signup: "Create New Account", toggle_login: "Have an account? Login", ph_name: "Full Name", ph_email: "Email Address", ph_pass: "Password", welcome: "Welcome Back,", total_bal: "TOTAL BALANCE", income: "INCOME", expense: "EXPENSE", monthly_limit: "Monthly Budget Limit", set_limit: "Set Limit", ready: "Ready", recent_tx: "Recent Transactions", nav_home: "Home", nav_settings: "Settings", dark_mode: "🌙 Dark / Light Mode", logout: "Logout", new_record: "New Record", ph_desc: "Description", ph_amt: "Amount (- for out)", btn_save: "Save Record", del_confirm: "Delete this record?", limit_exceeded: "Limit Exceeded!", used: "Used", balance: "Balance", lang_label: "SELECT LANGUAGE", cat_food: "Food", cat_salary: "Salary", cat_trans: "Transport", cat_shop: "Shopping", cat_ent: "Entertainment", cat_other: "Others" },
+    id: { sub_title: "Versi Internasional Premium", forgot_pass: "Lupa Kata Sandi?", btn_login: "Masuk", btn_signup: "Daftar Sekarang", toggle_signup: "Buat Akun Baru", toggle_login: "Sudah punya akun? Masuk", ph_name: "Nama Lengkap", ph_email: "Alamat Email", ph_pass: "Kata Sandi", welcome: "Selamat Datang,", total_bal: "TOTAL SALDO", income: "MASUK", expense: "KELUAR", monthly_limit: "Batas Anggaran Bulanan", set_limit: "Atur Batas", ready: "Siap", recent_tx: "Transaksi Terkini", nav_home: "Beranda", nav_settings: "Pengaturan", dark_mode: "🌙 Mode Gelap / Terang", logout: "Keluar", new_record: "Catatan Baru", ph_desc: "Keterangan", ph_amt: "Jumlah (- keluar)", btn_save: "Simpan Catatan", del_confirm: "Hapus catatan ini?", limit_exceeded: "Melebihi Batas!", used: "Pakai", balance: "Sisa", lang_label: "PILIH BAHASA", cat_food: "Makanan", cat_salary: "Gaji", cat_trans: "Transportasi", cat_shop: "Belanja", cat_ent: "Hiburan", cat_other: "Lain-lain" }
 };
+const catMap = { "cat_food": "🍔", "cat_salary": "💰", "cat_trans": "🚗", "cat_shop": "🛒", "cat_ent": "🎮", "cat_other": "✨" };
 
-const langData = {
-    ms: {
-        navDash: "🏠 Dashboard", navSett: "⚙️ Tetapan", navLogout: "🚪 Log Keluar", balLabel: "BAKI SEMASA", 
-        inc: "Masuk", exp: "Keluar", addRec: "📝 Tambah Rekod", descPh: "Keterangan", amtPh: "Jumlah", 
-        save: "Simpan Rekod", analysis: "📊 Analisis", settTitle: "⚙️ Tetapan", profTitle: "👤 Profil Pengguna", 
-        u: "Username:", e: "Emel:", j: "Tarikh Daftar:", changeU: "Tukar Username:", updateU: "Simpan",
-        secTitle: "🔒 Keselamatan", updatePw: "Update Password", theme: "Penampilan", btnTheme: "Tukar Tema",
-        infoApp: "ℹ️ Maklumat Aplikasi", appDesc: "Urus kewangan anda dengan bijak.", copy: "© 2026 Hak Cipta Terpelihara",
-        delBtn: "🗑️ Padam"
-    },
-    en: {
-        navDash: "🏠 Dashboard", navSett: "⚙️ Settings", navLogout: "🚪 Logout", balLabel: "CURRENT BALANCE", 
-        inc: "Income", exp: "Expense", addRec: "📝 Add Record", descPh: "Description", amtPh: "Amount", 
-        save: "Save Record", analysis: "📊 Analysis", settTitle: "⚙️ Settings", profTitle: "👤 User Profile", 
-        u: "Username:", e: "Email:", j: "Joined Date:", changeU: "Change Username:", updateU: "Save",
-        secTitle: "🔒 Security", updatePw: "Update Password", theme: "Appearance", btnTheme: "Toggle Theme",
-        infoApp: "ℹ️ App Info", appDesc: "Manage your finances smarter.", copy: "© 2026 All Rights Reserved",
-        delBtn: "🗑️ Delete"
-    },
-    id: {
-        navDash: "🏠 Dashboard", navSett: "⚙️ Pengaturan", navLogout: "🚪 Keluar", balLabel: "SALDO SAAT INI", 
-        inc: "Pemasukan", exp: "Pengeluaran", addRec: "📝 Tambah Catatan", descPh: "Keterangan", amtPh: "Jumlah", 
-        save: "Simpan Catatan", analysis: "📊 Analisis", settTitle: "⚙️ Pengaturan", profTitle: "👤 Profil Pengguna", 
-        u: "Username:", e: "Email:", j: "Tanggal Daftar:", changeU: "Ubah Username:", updateU: "Simpan",
-        secTitle: "🔒 Keamanan", updatePw: "Perbarui Sandi", theme: "Tampilan", btnTheme: "Ganti Tema",
-        infoApp: "ℹ️ Informasi Aplikasi", appDesc: "Kelola keuangan anda dengan bijak.", copy: "© 2026 Hak Cipta Dilindungi",
-        delBtn: "🗑️ Hapus"
-    }
-};
+let currentLang = localStorage.getItem('selectedLang') || 'ms';
+let myChart, curr = 'RM', globalDocs = [], monthlyBudget = 0;
+const rates = { 'RM': 1, '$': 0.26, 'Rp': 4318.35 }; 
 
-const rates = { 'RM': 1, '$': 0.26, 'B$': 0.32, 'S$': 0.32, 'Rp': 4312.64 };
-let myChart, curr = 'RM', globalDocs = [];
-
-// UTILS
-function isPasswordStrong(pw) { return /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /\d/.test(pw) && pw.length >= 6; }
-
-async function isUsernameTaken(name) {
-    try {
-        const snap = await db.collection("users").where("username", "==", name).limit(1).get();
-        return !snap.empty;
-    } catch (e) { return false; }
-}
-
-function togglePass(id, btn) {
-    const p = document.getElementById(id); p.type = p.type === "password" ? "text" : "password";
-    btn.innerText = p.type === "password" ? "👁️" : "🙈";
-}
-
-// UI LOGIC
 function changeLang(lang) {
-    const d = langData[lang];
-    document.getElementById('nav-dash').innerText = d.navDash;
-    document.getElementById('nav-sett').innerText = d.navSett;
-    document.getElementById('nav-logout').innerText = d.navLogout;
-    document.getElementById('txt-balance-label').innerText = d.balLabel;
-    document.getElementById('txt-inc').innerText = d.inc;
-    document.getElementById('txt-exp').innerText = d.exp;
-    document.getElementById('txt-add-record').innerText = d.addRec;
-    document.getElementById('txn-desc').placeholder = d.descPh;
-    document.getElementById('txn-amt').placeholder = d.amtPh;
-    document.getElementById('btn-save').innerText = d.save;
-    document.getElementById('txt-analysis').innerText = d.analysis;
-    document.getElementById('txt-sett-title').innerText = d.settTitle;
-    document.getElementById('txt-prof-title').innerText = d.profTitle;
-    document.getElementById('txt-u').innerText = d.u;
-    document.getElementById('txt-e').innerText = d.e;
-    document.getElementById('txt-j').innerText = d.j;
-    document.getElementById('txt-change-u').innerText = d.changeU;
-    document.getElementById('btn-update-u').innerText = d.updateU;
-    document.getElementById('txt-sec-title').innerText = d.secTitle;
-    document.getElementById('btn-update-pw').innerText = d.updatePw;
-    document.getElementById('txt-theme').innerText = d.theme;
-    document.getElementById('btn-theme').innerText = d.btnTheme;
-    document.getElementById('txt-info-app').innerText = d.infoApp;
-    document.getElementById('txt-app-desc').innerText = d.appDesc;
-    document.getElementById('txt-copy').innerText = d.copy;
-
-    const catSelect = document.getElementById('txn-cat');
-    catSelect.innerHTML = "";
-    Object.keys(catMap).forEach(key => {
-        const opt = document.createElement('option');
-        opt.value = key; opt.innerText = catMap[key][lang];
-        catSelect.appendChild(opt);
-    });
+    currentLang = lang;
     localStorage.setItem('selectedLang', lang);
+    document.querySelectorAll('[data-key]').forEach(el => el.innerText = i18n[lang][el.getAttribute('data-key')]);
+    document.querySelectorAll('[data-placeholder]').forEach(el => el.placeholder = i18n[lang][el.getAttribute('data-placeholder')]);
+    initCatSelect();
     if(globalDocs.length > 0) updateUI(globalDocs);
 }
 
-// AUTH
 auth.onAuthStateChanged(user => {
     if(user) {
         document.getElementById('app-shell').style.display = 'block';
-        document.getElementById('auth-container').style.display = 'none';
-        const lang = localStorage.getItem('selectedLang') || 'ms';
-        document.getElementById('lang-select').value = lang;
-        changeLang(lang);
+        document.getElementById('auth-container-wrapper').style.display = 'none';
+        document.getElementById('lang-switch').value = currentLang;
+        changeLang(currentLang);
         db.collection("users").doc(user.uid).onSnapshot(doc => {
             if(doc.exists) {
-                const data = doc.data();
-                document.getElementById('user-display').innerText = data.username;
-                document.getElementById('set-username').innerText = data.username;
-                document.getElementById('user-email-display').innerText = user.email;
+                const d = doc.data();
+                document.getElementById('user-display').innerText = d.username;
+                document.getElementById('set-username').innerText = d.username;
                 document.getElementById('set-email').innerText = user.email;
-                document.getElementById('user-av').innerText = data.username[0].toUpperCase();
-                document.getElementById('set-joined').innerText = new Date(user.metadata.creationTime).toLocaleDateString('ms-MY');
+                document.getElementById('user-av').innerText = d.username[0].toUpperCase();
+                document.getElementById('set-av').innerText = d.username[0].toUpperCase();
+                monthlyBudget = d.budgetLimit || 0;
+                if(globalDocs.length > 0) updateUI(globalDocs);
             }
         });
         db.collection("users").doc(user.uid).collection("transactions").orderBy("id","desc").onSnapshot(snap => updateUI(snap.docs));
     } else {
         document.getElementById('app-shell').style.display = 'none';
-        document.getElementById('auth-container').style.display = 'block';
+        document.getElementById('auth-container-wrapper').style.display = 'flex';
     }
 });
 
-function login() { 
-    const e = document.getElementById('email').value, p = document.getElementById('password').value;
-    auth.signInWithEmailAndPassword(e, p).catch(err => {
-        const errBox = document.getElementById('auth-err');
-        errBox.innerText = "Email/Password salah!";
-        errBox.style.display = "block";
-        errBox.style.color = "var(--red)";
-    }); 
-}
-
-async function signup() {
-    const n = document.getElementById('username').value.trim(), e = document.getElementById('email').value.trim(), p = document.getElementById('password').value;
-    const errBox = document.getElementById('auth-err');
-    if(!n || !e || !p) { alert("Sila isi semua ruangan!"); return; }
-
-    errBox.innerText = "Menyemak maklumat...";
-    errBox.style.display = 'block';
-    errBox.style.color = "orange";
-
-    if(await isUsernameTaken(n)) {
-        errBox.innerText = "Username sudah digunakan!";
-        errBox.style.color = "var(--red)";
-        return;
-    }
-
-    if(!isPasswordStrong(p)) {
-        errBox.innerText = "Password lemah! (Huruf besar, kecil, nombor, min 6 aksara).";
-        errBox.style.color = "var(--red)";
-        return;
-    }
-    
-    auth.createUserWithEmailAndPassword(e, p).then(c => {
-        db.collection("users").doc(c.user.uid).set({ username: n, email: e });
-    }).catch(err => {
-        errBox.innerText = err.message;
-        errBox.style.color = "var(--red)";
-    });
-}
+function login() { const e = document.getElementById('email').value, p = document.getElementById('password').value; if(e && p) auth.signInWithEmailAndPassword(e, p).catch(err => alert(err.message)); }
+function signup() { const n = document.getElementById('username').value, e = document.getElementById('email').value, p = document.getElementById('password').value; if(n && e && p) auth.createUserWithEmailAndPassword(e, p).then(c => db.collection("users").doc(c.user.uid).set({ username: n, email: e, budgetLimit: 0 })).catch(err => alert(err.message)); }
+function resetPassword() { const e = document.getElementById('email').value; if(!e) return alert("Email required."); auth.sendPasswordResetEmail(e).then(() => alert("Email sent!")).catch(err => alert(err.message)); }
+function toggleAuth() { const isL = document.getElementById('signup-fields').style.display === 'none'; document.getElementById('signup-fields').style.display = isL ? 'block' : 'none'; document.getElementById('signup-btn').style.display = isL ? 'block' : 'none'; document.getElementById('login-btn').style.display = isL ? 'none' : 'block'; document.getElementById('forgot-btn').style.display = isL ? 'none' : 'block'; document.getElementById('toggle-auth-btn').innerText = isL ? i18n[currentLang].toggle_login : i18n[currentLang].toggle_signup; }
 
 function updateUI(docs) {
-    const list = document.getElementById('list'); list.innerHTML = "";
-    const lang = localStorage.getItem('selectedLang') || 'ms';
-    const d = langData[lang];
-    let bal=0, inc=0, exp=0, currentCats = {}; globalDocs = docs;
+    globalDocs = docs; const list = document.getElementById('list'); list.innerHTML = "";
+    let bal=0, inc=0, exp=0, catData = {};
     docs.forEach(doc => {
-        const t = doc.data(); const rAmt = parseFloat(t.amount); const cAmt = rAmt * rates[curr];
-        const displayCat = catMap[t.category] ? catMap[t.category][lang] : t.category;
-        if(rAmt > 0) inc += cAmt; else { exp += cAmt; currentCats[displayCat] = (currentCats[displayCat]||0) + Math.abs(cAmt); }
+        const t = doc.data(); const amtRM = parseFloat(t.amount); const cAmt = amtRM * rates[curr];
+        const transCat = i18n[currentLang][t.category] || t.category;
+        if(amtRM > 0) inc += cAmt; else { exp += Math.abs(cAmt); catData[transCat] = (catData[transCat]||0) + Math.abs(cAmt); }
         bal += cAmt;
-        const li = document.createElement('li');
-        li.innerHTML = `<div><strong>${t.desc}</strong><br><small>${displayCat}</small></div>
-                        <div class="txn-side" style="color:${rAmt>0?'var(--green)':'var(--red)'}">${curr}${Math.abs(cAmt).toFixed(2)}<br>
-                        <button onclick="delTxn('${doc.id}')" style="background:none; border:none; color:#ccc; font-size:10px; cursor:pointer;">${d.delBtn}</button></div>`;
-        list.appendChild(li);
+        list.innerHTML += `<li><div style="display:flex;align-items:center;"><div style="font-size:20px;margin-right:12px;">${catMap[t.category]||'📦'}</div><div><strong>${t.desc}</strong><br><small style="color:var(--subtext)">${transCat}</small></div></div><div style="text-align:right;"><div style="color:${amtRM>0?'var(--success)':'var(--danger)'};font-weight:800;">${amtRM>0?'+':''}${Math.abs(cAmt).toLocaleString(undefined,{minimumFractionDigits:2})}</div><small onclick="delTxn('${doc.id}')" style="color:#cbd5e1;cursor:pointer;">X</small></div></li>`;
     });
-    document.getElementById('total-balance').innerText = `${curr}${bal.toFixed(2)}`;
-    document.getElementById('total-inc').innerText = inc.toFixed(2);
-    document.getElementById('total-exp').innerText = Math.abs(exp).toFixed(2);
-    renderChart(currentCats);
+    document.getElementById('total-balance').innerText = `${curr} ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}`;
+    document.getElementById('total-inc').innerText = inc.toLocaleString(undefined,{minimumFractionDigits:2});
+    document.getElementById('total-exp').innerText = exp.toLocaleString(undefined,{minimumFractionDigits:2});
+    updateBudgetUI(exp); 
+    renderChart(catData);
 }
+
+function updateBudgetUI(spent) {
+    const lim = monthlyBudget * rates[curr]; document.getElementById('budget-display').innerText = `${curr} ${lim.toLocaleString()}`;
+    const pct = lim > 0 ? (spent / lim) * 100 : 0; const bar = document.getElementById('budget-progress');
+    bar.style.width = Math.min(pct, 100) + "%"; bar.style.background = pct > 100 ? "var(--danger)" : (pct > 80 ? "var(--warning)" : "var(--success)");
+    document.getElementById('budget-status').innerText = pct >= 100 ? i18n[currentLang].limit_exceeded : `${i18n[currentLang].used} ${pct.toFixed(0)}%`;
+    document.getElementById('budget-remaining').innerText = `${i18n[currentLang].balance}: ${(lim - spent).toFixed(0)}`;
+}
+
+function setBudgetPrompt() { const v = prompt(`${i18n[currentLang].monthly_limit} (${curr}):`); if(v) db.collection("users").doc(auth.currentUser.uid).update({ budgetLimit: parseFloat(v) / rates[curr] }); }
 
 function renderChart(data) {
-    const ctx = document.getElementById('chart').getContext('2d'); if(myChart) myChart.destroy();
-    myChart = new Chart(ctx, { type:'doughnut', data:{ labels:Object.keys(data), datasets:[{data:Object.values(data), backgroundColor:['#6c5ce7','#00d2d3','#ff9f43','#ee5253','#feca57']}] } });
+    const ctx = document.getElementById('chart').getContext('2d');
+    if(myChart) myChart.destroy();
+    myChart = new Chart(ctx, { 
+        type: 'doughnut', 
+        data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#a855f7'] }] }, 
+        options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, color: getComputedStyle(document.body).getPropertyValue('--text') } } } } 
+    });
 }
 
-function saveTxn() { 
-    const d = document.getElementById('txn-desc').value, a = document.getElementById('txn-amt').value, c = document.getElementById('txn-cat').value;
-    if(d && a) db.collection("users").doc(auth.currentUser.uid).collection("transactions").add({ desc:d, amount:parseFloat(a), category:c, id:Date.now() });
-}
-
-function delTxn(id) { if(confirm("Padam?")) db.collection("users").doc(auth.currentUser.uid).collection("transactions").doc(id).delete(); }
-
-async function updateUsername() { 
-    const newN = document.getElementById('new-username').value.trim(); 
-    if(!newN) return;
-    if(await isUsernameTaken(newN)) { alert("Maaf, username sudah digunakan!"); return; }
-    db.collection("users").doc(auth.currentUser.uid).update({ username: newN }).then(()=>alert("Berjaya!")); 
-}
-
-function updatePassword() { 
-    const pw = document.getElementById('new-pw').value, err = document.getElementById('sec-err');
-    if(isPasswordStrong(pw)) { auth.currentUser.updatePassword(pw).then(() => alert("Berjaya!")); err.style.display = "none"; }
-    else { err.innerText = "Gagal! Mesti ada kombinasi huruf besar, kecil & nombor."; err.style.display = "block"; err.style.color = "var(--red)"; }
-}
-
+function showPage(id, el) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById('page-'+id).classList.add('active'); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); el.classList.add('active'); }
+function toggleAddModal() { const m = document.getElementById('add-modal'); m.style.display = m.style.display === 'flex' ? 'none' : 'flex'; }
+function saveTxn() { const d = document.getElementById('txn-desc').value, a = document.getElementById('txn-amt').value, c = document.getElementById('txn-cat').value; if(d && a) { db.collection("users").doc(auth.currentUser.uid).collection("transactions").add({ desc: d, amount: parseFloat(a)/rates[curr], category: c, id: Date.now() }); toggleAddModal(); } }
+function delTxn(id) { if(confirm(i18n[currentLang].del_confirm)) db.collection("users").doc(auth.currentUser.uid).collection("transactions").doc(id).delete(); }
+function initCatSelect() { const sel = document.getElementById('txn-cat'); if(!sel) return; sel.innerHTML = ""; Object.keys(catMap).forEach(k => { sel.innerHTML += `<option value="${k}">${catMap[k]} ${i18n[currentLang][k]}</option>`; }); }
+function updateGlobalCurr(v) { curr = v; updateUI(globalDocs); }
 function logout() { auth.signOut().then(() => location.reload()); }
-
-function toggleAuth() { 
-    const s = document.getElementById('signup-fields').style.display === 'block';
-    document.getElementById('signup-fields').style.display = s ? 'none' : 'block';
-    document.getElementById('signup-btn').style.display = s ? 'none' : 'block';
-    document.getElementById('login-btn').style.display = s ? 'block' : 'none';
-    document.getElementById('toggle-auth-btn').innerText = s ? "Daftar Akaun Baru" : "Log Masuk";
-}
-
-function updateGlobalCurr(val) { curr = val; document.getElementById('curr-label').innerText = val; if(globalDocs.length > 0) updateUI(globalDocs); }
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); document.getElementById('overlay').classList.toggle('active'); }
-function showPage(id, el) { 
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
-    document.getElementById('page-'+id).classList.add('active'); 
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    if(el) el.classList.add('active'); toggleSidebar(); 
-}
 </script>
 </body>
 </html>
